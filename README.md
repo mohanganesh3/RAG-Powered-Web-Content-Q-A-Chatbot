@@ -7,9 +7,9 @@ Think of a chatbot that can read and understand any website you give it. Imagine
 # What We Will Build
 
 In this project, we will use Langchain, Google Generative AI, and Groq to build an AI chatbot that can:
-	•	Load and process the content of any website.
-	•	Answer user queries based on the content retrieved from the website.
-	•	Leverage Retrieval-Augmented Generation (RAG) to improve the quality and relevance of responses.
+- Load and process the content of any website.
+- Answer user queries based on the content retrieved from the website.
+- Leverage Retrieval-Augmented Generation (RAG) to improve the quality and relevance of responses.
 
 # Brief explanation of how RAG works
 
