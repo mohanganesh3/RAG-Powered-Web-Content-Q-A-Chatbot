@@ -18,9 +18,9 @@ A RAG bot is short for Retrieval-Augmented Generation. This means that we are go
 <img width="1088" alt="Screenshot 2024-12-14 at 7 54 19 AM" src="https://github.com/user-attachments/assets/d8d0fcef-bf03-41fe-a272-61ab8addc98f" />
 
 Retrieval-Augmented Generation (RAG) combines two processes:
-	1. Retrieval: The system retrieves relevant information from an external source (e.g., a document, database, or website).
-	2. Augmentation: This retrieved information is then used to enrich the model’s response.
-	3. Generation: The language model combines its pre-trained knowledge with the augmented context to generate a contextually accurate response.
+1. Retrieval: The system retrieves relevant information from an external source (e.g., a document, database, or website).
+2. Augmentation: This retrieved information is then used to enrich the model’s response.
+3. Generation: The language model combines its pre-trained knowledge with the augmented context to generate a contextually accurate response.
 
  # How Does RAG Work?
  
