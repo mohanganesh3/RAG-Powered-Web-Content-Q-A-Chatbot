@@ -24,9 +24,9 @@ Retrieval-Augmented Generation (RAG) combines two processes:
 
  # How Does RAG Work?
  
-  •	Text Vectorization: The external text is converted into vector representations, making it easier to compare and retrieve similar content.
-	•	Similarity Search: The system searches for text most relevant to the user’s query by comparing vectors.
-	•	Augmentation: The retrieved text is included as a prefix in the prompt to guide the LLM’s response generation.
+- Text Vectorization: The external text is converted into vector representations, making it easier to compare and retrieve similar content.
+- Similarity Search: The system searches for text most relevant to the user’s query by comparing vectors.
+- Augmentation: The retrieved text is included as a prefix in the prompt to guide the LLM’s response generation.
 
 This dual approach allows RAG bots to bridge the gap between static, pre-trained knowledge and dynamic, real-time data, ensuring accurate and timely responses.
 
