@@ -1,112 +1,177 @@
-import os
 import streamlit as st
-from langchain_groq import ChatGroq
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import Chroma
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from utils import extract_website_content, split_text_into_chunks, create_vectorstore, generate_rag_response
+import os
 from dotenv import load_dotenv
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.chains import create_history_aware_retriever, create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_community.document_loaders import WebBaseLoader
-from langchain_core.messages import AIMessage, HumanMessage
 
-
+# Load environment variables
 load_dotenv()
 
-groq_api_key = os.getenv('GROQ_API_KEY')
-os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")
+# Set page configuration
+st.set_page_config(
+    page_title="Chat with Any Website",
+    page_icon="🌐",
+    layout="wide",
+)
 
-def get_vectorstore_from_url(url):
-    # get the text in document form
-    loader = WebBaseLoader(url)
-    document = loader.load()
-    
-    # split the document into chunks
-    text_splitter = RecursiveCharacterTextSplitter()
-    document_chunks = text_splitter.split_documents(document)
-    
-    # create embeddings using GoogleGenerativeAIEmbeddings
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-    
-    # create a vectorstore from the chunks
-    vector_store = Chroma.from_documents(document_chunks, embeddings)
+# Add custom CSS
+st.markdown("""
+<style>
+    .main {
+        padding: 1rem 1rem;
+    }
+    .chat-message {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        display: flex;
+    }
+    .chat-message.user {
+        background-color: #f0f0f0;
+    }
+    .chat-message.bot {
+        background-color: #e6f7ff;
+    }
+    .chat-message .avatar {
+        width: 20%;
+    }
+    .chat-message .content {
+        width: 80%;
+    }
+    .sidebar-content {
+        padding: 1rem;
+    }
+    .stTextInput > div > div > input {
+        background-color: white;
+    }
+    h1, h2, h3 {
+        color: #2c3e50;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-    return vector_store
+# Initialize session state
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "website_content" not in st.session_state:
+    st.session_state.website_content = None
+if "chunks" not in st.session_state:
+    st.session_state.chunks = []
+if "vectorstore" not in st.session_state:
+    st.session_state.vectorstore = None
+if "process_clicked" not in st.session_state:
+    st.session_state.process_clicked = False
+if "groq_api_key" not in st.session_state:
+    st.session_state.groq_api_key = os.getenv("GROQ_API_KEY", "")
 
-def get_context_retriever_chain(vector_store):
-    llm = ChatGroq(groq_api_key=groq_api_key, model_name="Llama3-8b-8192")
-    
-    retriever = vector_store.as_retriever()
-    
-    prompt = ChatPromptTemplate.from_messages([
-      MessagesPlaceholder(variable_name="chat_history"),
-      ("user", "{input}"),
-      ("user", "Given the above conversation, generate a search query to look up in order to get information relevant to the conversation")
-    ])
-    
-    retriever_chain = create_history_aware_retriever(llm, retriever, prompt)
-    
-    return retriever_chain
-    
-def get_conversational_rag_chain(retriever_chain): 
-    
-    llm = ChatGroq(groq_api_key=groq_api_key, model_name="Llama3-8b-8192")
-    
-    prompt = ChatPromptTemplate.from_messages([
-      ("system", "Answer the user's questions based on the below context:\n\n{context}"),
-      MessagesPlaceholder(variable_name="chat_history"),
-      ("user", "{input}"),
-    ])
-    
-    stuff_documents_chain = create_stuff_documents_chain(llm, prompt)
-    
-    return create_retrieval_chain(retriever_chain, stuff_documents_chain)
+# Main app layout
+st.title("🌐 Chat with Any Website")
 
-def get_response(user_input):
-    retriever_chain = get_context_retriever_chain(st.session_state.vector_store)
-    conversation_rag_chain = get_conversational_rag_chain(retriever_chain)
-    
-    response = conversation_rag_chain.invoke({
-        "chat_history": st.session_state.chat_history,
-        "input": user_input
-    })
-    
-    return response['answer']
-
-# app config
-st.set_page_config(page_title="Chat with websites", page_icon="🤖")
-st.title("Chat with websites")
-
-# sidebar
+# Sidebar
 with st.sidebar:
-    st.header("Settings")
-    website_url = st.text_input("Website URL")
+    st.header("Website Input")
+    website_url = st.text_input("Enter website URL:", "https://example.com")
+    
+    api_key = st.session_state.groq_api_key
+    if api_key:
+        st.session_state.groq_api_key = api_key
+    
+    process_button = st.button("Process Website")
+    
+    if process_button:
+        if not st.session_state.groq_api_key:
+            st.error("Please enter your GROQ API key.")
+        else:
+            with st.spinner("Processing website content..."):
+                # Extract website content
+                st.session_state.website_content = extract_website_content(website_url)
+                
+                if st.session_state.website_content:
+                    # Split into chunks
+                    st.session_state.chunks = split_text_into_chunks(st.session_state.website_content)
+                    
+                    # Create vector store
+                    st.session_state.vectorstore = create_vectorstore(st.session_state.chunks)
+                    
+                    st.session_state.process_clicked = True
+                    st.success(f"Website processed! Found {len(st.session_state.chunks)} chunks of content.")
+                else:
+                    st.error("Failed to process website.")
+    
+    st.markdown("---")
+    st.markdown("### About")
+    st.markdown("""
+    This app allows you to chat with any website using RAG (Retrieval Augmented Generation) with the GROQ API.
+    
+    1. Enter a website URL
+    2. Click "Process Website"
+    3. Ask questions about the website content
+    """)
 
-if website_url is None or website_url == "":
-    st.info("Please enter a website URL")
-
-else:
-    # session state
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = [
-            AIMessage(content="Hello, I am a bot. How can I help you?"),
-        ]
-    if "vector_store" not in st.session_state:
-        st.session_state.vector_store = get_vectorstore_from_url(website_url)    
-
-    # user input
-    user_query = st.chat_input("Type your message here...")
-    if user_query is not None and user_query != "":
-        response = get_response(user_query)
-        st.session_state.chat_history.append(HumanMessage(content=user_query))
-        st.session_state.chat_history.append(AIMessage(content=response))
+# Chat interface
+if st.session_state.process_clicked:
+    # Display messages
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+    
+    # User input
+    user_query = st.chat_input("Ask something about the website...")
+    
+    if user_query:
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": user_query})
+        with st.chat_message("user"):
+            st.markdown(user_query)
         
-    # conversation
-    for message in st.session_state.chat_history:
-        if isinstance(message, AIMessage):
-            with st.chat_message("AI"):
-                st.write(message.content)
-        elif isinstance(message, HumanMessage):
-            with st.chat_message("Human"):
-                st.write(message.content)
+        # Generate response
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                response = generate_rag_response(user_query, st.session_state.vectorstore)
+                st.markdown(response)
+        
+        # Add assistant response to chat history
+        st.session_state.messages.append({"role": "assistant", "content": response})
+else:
+    st.info("👈 Enter a website URL in the sidebar and click 'Process Website' to start chatting.")
+
+# Sample questions section
+if st.session_state.process_clicked:
+    st.markdown("### Sample questions to ask:")
+    col1, col2 = st.columns(2)
+    
+    sample_questions = [
+        "What is the main topic of this website?",
+        "Can you summarize the key information?",
+        "What products or services are mentioned?",
+        "Who is the target audience for this website?"
+    ]
+    
+    with col1:
+        for i in range(0, len(sample_questions), 2):
+            if st.button(sample_questions[i]):
+                # Add user message to chat history
+                st.session_state.messages.append({"role": "user", "content": sample_questions[i]})
+                
+                # Generate response
+                response = generate_rag_response(sample_questions[i], st.session_state.vectorstore)
+                
+                # Add assistant response to chat history
+                st.session_state.messages.append({"role": "assistant", "content": response})
+                
+                # Force a rerun to display the messages
+                st.experimental_rerun()
+    
+    with col2:
+        for i in range(1, len(sample_questions), 2):
+            if st.button(sample_questions[i]):
+                # Add user message to chat history
+                st.session_state.messages.append({"role": "user", "content": sample_questions[i]})
+                
+                # Generate response
+                response = generate_rag_response(sample_questions[i], st.session_state.vectorstore)
+                
+                # Add assistant response to chat history
+                st.session_state.messages.append({"role": "assistant", "content": response})
+                
+                # Force a rerun to display the messages
+                st.experimental_rerun()
