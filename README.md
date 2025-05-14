@@ -1,136 +1,97 @@
+RAG-Powered Web Content Q&A Chatbot
+Imagine a chatbot that can dive into any website and answer your questions with precision, pulling insights directly from the site’s content. This project creates an AI-powered chatbot that does just that, using Retrieval-Augmented Generation (RAG) to deliver accurate and contextually relevant responses based on website content.
+What We Will Build
+In this project, we will build an AI chatbot that can:
 
+Extract and process content from any given website.
+Answer user queries based on the retrieved website content.
+Use RAG to enhance response quality by combining retrieved information with generative AI capabilities.
 
-# RAG-Powered Web Content Q&A Chatbot
+Brief Explanation of How RAG Works
+Retrieval-Augmented Generation (RAG) combines two key processes:
 
-Think of a chatbot that can read and understand any website you give it. Imagine asking this chatbot questions based on the content of the website, and receiving accurate, insightful answers. In this project, we aim to create an AI-powered chatbot that can interact with users and answer their questions based on the content of any given website.
+Retrieval: The system fetches relevant information from an external source (in this case, a website).
+Augmentation: The retrieved information is used to enrich the AI’s response.
+Generation: The language model generates a response by combining its pre-trained knowledge with the augmented context.
 
-# What We Will Build
+How Does RAG Work?
 
-In this project, we will use Langchain, Google Generative AI, and Groq to build an AI chatbot that can:
-- Load and process the content of any website.
-- Answer user queries based on the content retrieved from the website.
-- Leverage Retrieval-Augmented Generation (RAG) to improve the quality and relevance of responses.
+Text Vectorization: Website content is converted into vector representations for efficient similarity searches.
+Similarity Search: The system identifies text chunks most relevant to the user’s query by comparing vectors.
+Augmentation: Relevant text is included in the prompt to guide the AI’s response generation.
 
-# Brief explanation of how RAG works
+This approach ensures the chatbot provides answers that are both informed by the website’s content and enhanced by the AI’s understanding, resulting in accurate and relevant responses.
 
-A RAG bot is short for Retrieval-Augmented Generation. This means that we are going to "augment" the knowledge of our LLM with new information that we are going to pass in our prompt. We first vectorize all the text that we want to use as "augmented knowledge" and then look through the vectorized text to find the most similar text to our prompt. We then pass this text to our LLM as a prefix
+Step-by-Step Guide to Building the Chatbot
+Step 1: Set Up Your Environment
+Install the required libraries by running:
+pip install -r requirements.txt
 
-<img width="1088" alt="Screenshot 2024-12-14 at 7 54 19 AM" src="https://github.com/user-attachments/assets/d8d0fcef-bf03-41fe-a272-61ab8addc98f" />
+Create a .env file to securely store your API key:
+GROQ_API_KEY=your_groq_api_key
 
-Retrieval-Augmented Generation (RAG) combines two processes:
-1. Retrieval: The system retrieves relevant information from an external source (e.g., a document, database, or website).
-2. Augmentation: This retrieved information is then used to enrich the model’s response.
-3. Generation: The language model combines its pre-trained knowledge with the augmented context to generate a contextually accurate response.
+Step 2: Load and Process Website Content
+The chatbot uses requests and BeautifulSoup to extract text from a website. The content is then split into smaller chunks using langchain-text-splitters and stored in a FAISS vector store with custom embeddings for efficient retrieval.
+from utils import extract_website_content, split_text_into_chunks, create_vectorstore
 
- # How Does RAG Work?
- 
-- Text Vectorization: The external text is converted into vector representations, making it easier to compare and retrieve similar content.
-- Similarity Search: The system searches for text most relevant to the user’s query by comparing vectors.
-- Augmentation: The retrieved text is included as a prefix in the prompt to guide the LLM’s response generation.
+website_content = extract_website_content(website_url)
+chunks = split_text_into_chunks(website_content)
+vectorstore = create_vectorstore(chunks)
 
-This dual approach allows RAG bots to bridge the gap between static, pre-trained knowledge and dynamic, real-time data, ensuring accurate and timely responses.
+Step 3: Set Up the Conversational AI Chain
+The chatbot leverages langchain-groq with the llama3-70b-8192 model to generate responses. A RAG pipeline retrieves relevant chunks from the vector store and uses them to augment the AI’s prompt.
+from utils import generate_rag_response
 
-This process ensures that the chatbot answers based on both its internal understanding and the real-time data it fetches, resulting in more accurate and relevant responses.
+response = generate_rag_response(user_query, vectorstore)
 
-# Step-by-Step Guide to Building the Chatbot
+Step 4: Build the Streamlit Interface
+The chatbot features an interactive web interface built with Streamlit. Users can input a website URL, process its content, and ask questions. The interface displays chat history and provides sample questions to guide interaction.
+import streamlit as st
 
-## Step 1: Set Up Your Environment
+st.title("🌐 Chat with Any Website")
+website_url = st.text_input("Enter website URL:", "https://example.com")
+process_button = st.button("Process Website")
+if process_button:
+    st.session_state.website_content = extract_website_content(website_url)
+    st.session_state.chunks = split_text_into_chunks(st.session_state.website_content)
+    st.session_state.vectorstore = create_vectorstore(st.session_state.chunks)
+    st.session_state.process_clicked = True
 
-First, we need to install the required libraries. Run the following command:
+Step 5: Testing and Demo
+Run the Streamlit app with:
+streamlit run app.py
 
-pip install streamlit langchain langchain_groq langchain_google_genai langchain_community
+Enter a website URL, click "Process Website," and start asking questions. The chatbot will retrieve relevant content and generate answers based on the website’s text.
+Demo ExampleWebsite Used: https://example.comQuery: "What is the main topic of this website?"Response: The chatbot retrieves relevant chunks and generates a concise answer, such as: "The main topic of the website is to provide a placeholder example for web development and testing purposes."
 
-Then, create a .env file to securely store your API keys:
+Features
 
-    GROQ_API_KEY=your_groq_api_key
-    GOOGLE_API_KEY=your_google_api_key
+Website Processing: Extracts and processes content from any accessible website.
+Interactive Chat: Maintains chat history and supports dynamic Q&A.
+Sample Questions: Provides suggested questions to help users explore the website’s content.
+Custom Styling: Includes a clean, user-friendly interface with custom CSS.
 
-## Step 2: Load and Process Website Content
+Extending the Chatbot
+You can enhance the chatbot by:
 
-We will use Langchain’s WebBaseLoader to load the website’s content. This content will be split into smaller chunks to make it easier to process. After that, we will generate embeddings using Google Generative AI to create a vector store for the content.
+Supporting multiple websites simultaneously.
+Integrating additional data sources (e.g., PDFs or APIs).
+Customizing for specific use cases like e-commerce, education, or customer support.
+Adding advanced features like voice input or multilingual support.
 
-    from langchain_community.document_loaders import WebBaseLoader
-    from langchain.text_splitter import RecursiveCharacterTextSplitter
-    from langchain_google_genai import GoogleGenerativeAIEmbeddings
-    from langchain_community.vectorstores import Chroma
+Requirements
+See requirements.txt for the full list of dependencies, including:
 
-    def get_vectorstore_from_url(url):
-        loader = WebBaseLoader(url)
-        document = loader.load()
-    
-        text_splitter = RecursiveCharacterTextSplitter()
-        document_chunks = text_splitter.split_documents(document)
-    
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-        vector_store = Chroma.from_documents(document_chunks, embeddings)
+streamlit==1.31.1
+langchain-groq==0.1.2
+faiss-cpu==1.7.4
+requests==2.31.0
+beautifulsoup4==4.12.2
 
-        return vector_store
+Notes
 
-## Step 3: Set Up the Conversational AI Chain
+Ensure a valid GROQ API key is provided in the .env file or sidebar.
+The chatbot relies on a simple deterministic embedding function to avoid external dependencies, but you can replace it with more advanced embeddings (e.g., from Hugging Face) for better performance.
+Some websites may restrict scraping; ensure compliance with their terms of service.
 
-Now, integrate Groq’s ChatGroq model to handle the conversation. We will create a retriever chain to fetch relevant content and a generation chain to provide answers based on that content.
-
-    from langchain_groq import ChatGroq
-    from langchain.chains import create_history_aware_retriever, create_retrieval_chain
-
-    def get_context_retriever_chain(vector_store):
-        llm = ChatGroq(groq_api_key="your_groq_api_key", model_name="Llama3-8b-8192")
-        retriever = vector_store.as_retriever()
-    
-        retriever_chain = create_history_aware_retriever(llm, retriever)
-        return retriever_chain
-
-## Step 4: Build the Streamlit Interface
-
-We will use Streamlit to create an interactive web interface where users can input a website URL and ask questions. The chatbot will then generate answers based on the website’s content.
-
-    import streamlit as st
-
-    st.set_page_config(page_title="Chat with Websites", page_icon="🤖")
-    st.title("Chat with Websites")
-
-    website_url = st.text_input("Enter a website URL")
-    if website_url:
-        if "vector_store" not in st.session_state:
-            st.session_state.vector_store = get_vectorstore_from_url(website_url)
-    
-        user_query = st.text_input("Ask me something about the website...")
-        if user_query:
-            response = get_response(user_query)
-            st.session_state.chat_history.append({"role": "Human", "content": user_query})
-            st.session_state.chat_history.append({"role": "AI", "content": response})
-
-        for message in st.session_state.chat_history:
-            st.write(f"{message['role']}: {message['content']}")
-
-## Step 5: Testing and Demo
-
-Once everything is set up, run the Streamlit app with:
-
-  streamlit run app.py
-
-Now, you can enter a website URL and start interacting with the chatbot. Ask it questions related to the website’s content, and it will provide relevant answers.
-
-Demo
-
-Try entering different websites and ask questions about their content. The chatbot will retrieve relevant information from the website and generate responses accordingly.
-
-<img width="1435" alt="Screenshot 2024-12-19 at 6 30 37 PM" src="https://github.com/user-attachments/assets/81db8487-cc65-41e0-93ef-d39ea8181ed9" />
-**Website Used** : https://madewithml.com/courses/mlops/setup/
-
-You can now engage with the AI chatbot to explore and retrieve insights about the website or delve into specific details contained within its content.
-<img width="1438" alt="Screenshot 2024-12-19 at 6 31 44 PM" src="https://github.com/user-attachments/assets/980102bc-9d9a-4a65-a8c2-ba43baafa097" />
-
-Example,
-Here i am asking about Cluster 
-**Query**= What is Cluster
-
-**Response**:
-<img width="1436" alt="Screenshot 2024-12-19 at 6 35 05 PM" src="https://github.com/user-attachments/assets/5d3b5568-6eb3-4107-b7b7-cace33127fcb" />
-
-### Chatbot will remember your previous questions you can even ask like tell me more about it 
-**Response**:
-
-<img width="1440" alt="Screenshot 2024-12-19 at 6 37 27 PM" src="https://github.com/user-attachments/assets/35b806f1-c543-4bde-b74a-272326e690d2" />
-
-You can explore even more by extending this chatbot to handle multiple websites, integrate additional data sources, or customize it for specific use cases like e-commerce, education, or customer support. The possibilities are endless!
+Explore the web like never before with this RAG-powered chatbot!
