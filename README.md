@@ -1,5 +1,7 @@
 # 🌐 RAG-Powered Web Content Q\&A Chatbot
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Open%20App-ff4b4b?logo=streamlit&logoColor=white)](https://rag-powered-web-content-q-a-chatbot-lfbp5fwkgnppgdnfpyae8v.streamlit.app/)
+
 Imagine a chatbot that can dive into any website and answer your questions with precision, pulling insights directly from the site’s content. This project creates an AI-powered chatbot that does just that, using **Retrieval-Augmented Generation (RAG)** to deliver accurate and contextually relevant responses based on website content.
 
 ---
