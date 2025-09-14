@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 from bs4 import BeautifulSoup
 import re
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -92,10 +92,15 @@ def generate_rag_response(query, vectorstore):
     docs = vectorstore.similarity_search(query, k=4)
     context = "\n".join([doc.page_content for doc in docs])
     
-    # Initialize the Groq client
-    llm = ChatGroq(
-        api_key=os.getenv("GROQ_API_KEY") or st.session_state.groq_api_key,
-        model_name="llama3-70b-8192"
+    # Initialize the Google Gemini client
+    google_key = (
+        os.getenv("GOOGLE_API_KEY")
+        or (st.secrets.get("GOOGLE_API_KEY") if hasattr(st, "secrets") else None)
+        or st.session_state.google_api_key
+    )
+    llm = ChatGoogleGenerativeAI(
+        google_api_key=google_key,
+        model="gemini-1.5-flash"
     )
     
     # Create a prompt template
